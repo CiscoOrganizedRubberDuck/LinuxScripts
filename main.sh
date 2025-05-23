@@ -1,21 +1,28 @@
 #!/bin/bash
 
-#variables 
+PASSFILE = "/passwords.txt"
+PASSWORD = "CyberPatriot2025!"
+
+#os 
+DISTRO="$(cat /etc/*-release | grep "^ID=" | cut -b 4-)"
 
 
 #Users 
-adduser(){
-    local username = $1 
-    local password = $2
-    adduser $username -p $password
-}
+for i in $(cat $PASSFILE | cut -d " " -f2); 
+do 
+    useradd $i
+    $1:$PASSWORD | chpasswd
+done 
 
-#UFW 
+#sudo deluser -r $username
 
+
+#UFW or iptables  
+sudo apt install ufw #APT using Distros 
 
 #Ports 
 
-netstat --abno
+netstat --abno | grep 
 
 #-A Displays all connections and listening ports
 #-B Displays the executable involved
