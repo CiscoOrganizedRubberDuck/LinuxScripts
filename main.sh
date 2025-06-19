@@ -1,27 +1,58 @@
 #!/bin/bash
 
-PASSFILE = "/passwords.txt"
+#Remove clean.sh before moving to prod 
 PASSWORD = "CyberPatriot2025!"
 
+#gets curent directory before moving 
+USERS=$(pwd) 
+USERS+="/Users.txt" 
+cat $USERS
+
+#creates another directory for log
+mkdir scriptLogs
+cd scriptLogs
+cut -d: -f1,3 /etc/passwd | egrep ':[0-9]{4}$' | cut -d: -f1 > CurrentHumanUsers.txt
+
+CURRENT_USERS="CurrentHumanUsers.txt" 
+
+#Finds what users to add and what to remove 
+diff $USERS $CURRENT_USERS > dif.txt 
+DIF="dif.txt" 
+
+#Stores users to remove and add in log files 
+echo  --------------
+touch addedUsers.txt
+grep -h "<" $DIF | cut -c 3- >> addedUsers.txt  
+touch removedUsers.txt
+grep -h ">" $DIF | cut -c 3- >> removedUsers.txt
+
+#sudo grep "sudo" /etc/gshadow | cut -c 9-  
+
+#adds users using log file and gives feedback
+while read user; do
+	sudo useradd  $user
+	echo "${user}:${PASSWORD}" | chpasswd
+	echo "added {$user}"
+done<addedUsers.txt 
+
+#removes users using log file and gives feedback
+while read user; do 
+	sudo userdel  $user
+	echo "removed {$user}"
+done<removedUsers.txt
+
+
 #os 
+#Will be mint or ubuntu  
 DISTRO="$(cat /etc/*-release | grep "^ID=" | cut -b 4-)"
 
 
-#Users 
-for i in $(cat $PASSFILE | cut -d " " -f2); 
-do 
-    useradd $i
-    $1:$PASSWORD | chpasswd
-done 
-
-#sudo deluser -r $username
+#UFW 
+sudo apt install ufw  
+sudo ufw enable 
 
 
-#UFW or iptables  
-sudo apt install ufw #APT using Distros 
-
-#Ports 
-
+#Ports
 netstat --abno | grep 
 
 #-A Displays all connections and listening ports
@@ -30,7 +61,6 @@ netstat --abno | grep
 #-O Displays owning process ID for when you need to do taskkill
 
 #Search User files for .png? 
-
 
 #Password Polcies 
 
