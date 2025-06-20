@@ -1,18 +1,19 @@
 #!/bin/bash
 
 #Remove clean.sh before moving to prod 
-PASSWORD = "CyberPatriot2025!"
+PASSWORD="CyberPatriot2025!"
 
 #gets curent directory before moving 
 USERS=$(pwd) 
 USERS+="/Users.txt" 
-cat $USERS
+
 
 #creates another directory for log
 mkdir scriptLogs
 cd scriptLogs
-cut -d: -f1,3 /etc/passwd | egrep ':[0-9]{4}$' | cut -d: -f1 > CurrentHumanUsers.txt
 
+#Gets Human Users at the start of the Script and stores them in a text file 
+cut -d: -f1,3 /etc/passwd | egrep ':[0-9]{4}$' | cut -d: -f1 > CurrentHumanUsers.txt
 CURRENT_USERS="CurrentHumanUsers.txt" 
 
 #Changes Current Users Password
@@ -38,7 +39,7 @@ grep -h ">" $DIF | cut -c 3- >> removedUsers.txt
 #adds users using log file and gives feedback
 while read user; do
 	sudo useradd  $user
-	echo "${user}:${PASSWORD}" | chpasswd
+	echo "${user}:${PASSWORD}" | sudo chpasswd
 	echo "added {$user}"
 done<addedUsers.txt 
 
