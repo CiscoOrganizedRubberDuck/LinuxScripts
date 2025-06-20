@@ -1,6 +1,7 @@
 # LinuxScripts
 __**Features**__ 
 - Adds Users and Removes Users 
+- Changes all user passwords to "CyberPartriot2025!"  
 - Enables UFW 
 
 __**How to use?**__

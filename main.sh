@@ -15,6 +15,13 @@ cut -d: -f1,3 /etc/passwd | egrep ':[0-9]{4}$' | cut -d: -f1 > CurrentHumanUsers
 
 CURRENT_USERS="CurrentHumanUsers.txt" 
 
+#Changes Current Users Password
+while read user; do
+	echo "${user}:$PASSWORD" | sudo chpasswd
+	echo "Changed ${user}'s password"
+done < $CURRENT_USERS 
+
+
 #Finds what users to add and what to remove 
 diff $USERS $CURRENT_USERS > dif.txt 
 DIF="dif.txt" 
@@ -44,7 +51,7 @@ done<removedUsers.txt
 
 #os 
 #Will be mint or ubuntu  
-DISTRO="$(cat /etc/*-release | grep "^ID=" | cut -b 4-)"
+#DISTRO="$(cat /etc/*-release | grep "^ID=" | cut -b 4-)"
 
 
 #UFW 
@@ -53,7 +60,7 @@ sudo ufw enable
 
 
 #Ports
-netstat --abno | grep 
+#netstat --abno | grep 
 
 #-A Displays all connections and listening ports
 #-B Displays the executable involved
