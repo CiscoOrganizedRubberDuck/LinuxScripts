@@ -61,7 +61,7 @@ sudo ufw enable
 
 
 #Ports
-#netstat --abno | grep 
+#netstat --abno 
 
 #-A Displays all connections and listening ports
 #-B Displays the executable involved
@@ -73,5 +73,8 @@ sudo ufw enable
 #Password Polcies 
 
 #Chmod appropriate files 
+chmod 0644 /etc/passwd
+chmod 0640 /etc/shadow
+chmod 0640 /etc/gshadow
 
 #SSH root login disable:
