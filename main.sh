@@ -1,16 +1,13 @@
 #!/bin/bash
-
-#Remove clean.sh before moving to prod 
 PASSWORD="CyberPatriot2025!"
 
-#gets curent directory before moving 
+#gets full location of both the Users.txt and Admins.txt   
 USERS=$(pwd) 
 USERS+="/Users.txt" 
-
 ADMINS=$(pwd) 
 ADMINS+="/Admins.txt"
 
-#creates another directory for log
+#creates another directory for log and then enters that directory 
 sudo mkdir scriptLogs
 cd scriptLogs
 
@@ -18,7 +15,7 @@ cd scriptLogs
 cut -d: -f1,3 /etc/passwd | egrep ':[0-9]{4}$' | cut -d: -f1 > CurrentHumanUsers.txt
 CURRENT_USERS="CurrentHumanUsers.txt" 
 
-#Change Root 
+#Change Root password 
 echo "root":$PASSWORD | sudo chpasswd 
 echo "Changed root's password"
 
@@ -107,5 +104,3 @@ sudo ufw enable
 chmod 0644 /etc/passwd
 chmod 0640 /etc/shadow
 chmod 0640 /etc/gshadow
-
-#SSH root login disable:
