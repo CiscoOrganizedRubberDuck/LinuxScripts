@@ -26,11 +26,15 @@ while read user; do
 done < $CURRENT_USERS 
 
 #Finds what users to add and what to remove 
-sudo diff $USERS $CURRENT_USERS > difUser.txt 
-difUsers="difUser.txt" 
+#difUsers=$(sudo diff $USERS $CURRENT_USERS > difUser.txt) 
+#
+echo  -------------- 
+comm -23 <(sort $USERS) <(sort $CURRENT_USERS)
+comm -13 <(sort $USERS) <(sort $CURRENT_USERS)
+
 
 #Stores users to remove and add in log files
-echo  --------------
+
 sudo touch addedUsers.txt
 grep "<" $difUsers | cut -c 3- >> addedUsers.txt  
 sudo touch removedUsers.txt
@@ -108,3 +112,5 @@ find /home -nowarn -type f -name "*.mp3" >> $FILES
 chmod 0644 /etc/passwd
 chmod 0640 /etc/shadow
 chmod 0640 /etc/gshadow
+
+sudo apt upgrade 
