@@ -29,7 +29,7 @@ done < $CURRENT_USERS
 sudo diff $USERS $CURRENT_USERS > difUser.txt 
 difUsers="difUser.txt" 
 
-#Stores users to remove and add in log files 
+#Stores users to remove and add in log files
 echo  --------------
 sudo touch addedUsers.txt
 grep "<" $difUsers | cut -c 3- >> addedUsers.txt  
@@ -83,7 +83,6 @@ done<removedAdmins.txt
 sudo apt install ufw  
 sudo ufw enable 
 
-
 #Password Polcies 
 
 
@@ -98,7 +97,12 @@ sudo ufw enable
 #-N makes names to numbers 
 #-O Displays owning process ID for when you need to do taskkill
 
-#Search User files for .png? 
+#Search User files 
+FILES = $(touch foundfiles.txt)
+find /home -nowarn -type f -name "*.png" | grep -v "snap" >> $FILES 
+find /home -nowarn -type f -name "*.jpg" >> $FILES
+find /home -nowarn -type f -name "*.mp4" >> $FILES
+find /home -nowarn -type f -name "*.mp3" >> $FILES
 
 #Chmod appropriate files 
 chmod 0644 /etc/passwd
