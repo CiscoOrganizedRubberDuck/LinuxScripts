@@ -5,25 +5,24 @@ PASSWORD="CyberPatriot2025!"
 INPUT=$(pwd) 
 INPUT+="/Input.txt" 
 
+#Gets the absolute file path 
+USERS=$(pwd)"/Users.txt"
+
 #Removes blank lines *'/^$/'' is regex for starts and ends with nothing) and d removes lines  
 #Greps for the autorized header and removes them 
 #Greps for the passwords and removes them 
 #Removes the (you) text the s option replaces text using 's/old/new/' the double dash replaces it with nothing
 #Puts that into a User.txt and saves that under the USERS variable 
+sed '/^$/d' $INPUT | grep -vi "Authorized" | grep -vi "password" | sed 's/ (you)//' > $USERS
 
-USERS=$(sed '/^$/d' $INPUT | grep -vi "Authorized" | grep -vi "password" | sed 's/ (you)//' > Users.txt)
-
-#Gets the absolute file path 
-USERS=$(pwd)"/"$USERS
+#Gets the absolute file path
+ADMINS=$(pwd)"/Admins.txt"
 
 #Removes the first line (Authorized Admins) and Authorized Users with all lines after it 
 #Greps and removes the passwords 
 #Removes the (you) on your user
 #Puts that into an Admins.txt and saves it in the Admins Variable 
-
-ADMINS=$(sed '1d;/Authorized Users/,$d' $INPUT | grep -vi "password" | sed 's/ (you)//'| sed '/^$/d' > Admins.txt)
-#Gets the absolute file path
-ADMINS=$(pwd)"/"$ADMINS
+sed '1d;/Authorized Users/,$d' $INPUT | grep -vi "password" | sed 's/ (you)//'| sed '/^$/d' > $ADMINS
 
 #creates another directory for log and then enters that directory 
 sudo mkdir scriptLogs
@@ -43,9 +42,6 @@ while read user; do
 	#give feedback if successful or not using if statement and exit code
 	echo "Changed ${user}'s password"
 done < $CURRENT_USERS 
-
- 
-
 
 #Stores users to remove and add in log files
 echo  -------------- 
@@ -67,17 +63,13 @@ while read user; do
 	echo "removed {$user}"
 done<removedUsers.txt
 
-sudo grep "sudo" /etc/gshadow | cut -c 9- | tr , "\n" > CurrentAdmins.txt
-CURRENT_ADMINS="CurrentAdmins.txt" 
+CURRENT_ADMINS=CurrentAdmins.txt
+(sudo grep "sudo" /etc/gshadow | cut -c 9- | tr , "\n" > $CURRENT_ADMINS) 
 
-sudo diff $ADMINS $CURRENT_ADMINS > difAdmins.txt 
-difAdmins="difAdmins.txt" 
+comm -13 <(sort $ADMINS) <(sort $CURRENT_ADMINS) >> removedAdmins.txt #Unique to Current Users means that they are not desired 
+comm -23 <(sort $ADMINS) <(sort $CURRENT_ADMINS) >> addedAdmins.txt #Unique to Users means that they do not exist and should 
 
 echo  --------------
-sudo touch addedAdmins.txt
-grep "<" $difAdmins | cut -c 3- >> addedAdmins.txt  
-sudo touch removedAdmins.txt
-grep ">" $difAdmins | cut -c 3- >> removedAdmins.txt
 
 #adds users to sudoers group
 while read admin; do
@@ -116,7 +108,8 @@ sudo ufw enable
 #-O Displays owning process ID for when you need to do taskkill
 
 #Search User files 
-FILES = $(touch foundfiles.txt)
+FILES="foundfiles.txt"
+touch $FILES
 find /home -nowarn -type f -name "*.png" | grep -v "snap" >> $FILES 
 find /home -nowarn -type f -name "*.jpg" >> $FILES
 find /home -nowarn -type f -name "*.mp4" >> $FILES
