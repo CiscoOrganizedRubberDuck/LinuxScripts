@@ -2,10 +2,28 @@
 PASSWORD="CyberPatriot2025!"
 
 #gets full location of both the Users.txt and Admins.txt   
-USERS=$(pwd) 
-USERS+="/Users.txt" 
-ADMINS=$(pwd) 
-ADMINS+="/Admins.txt"
+INPUT=$(pwd) 
+INPUT+="/Input.txt" 
+
+#Removes blank lines *'/^$/'' is regex for starts and ends with nothing) and d removes lines  
+#Greps for the autorized header and removes them 
+#Greps for the passwords and removes them 
+#Removes the (you) text the s option replaces text using 's/old/new/' the double dash replaces it with nothing
+#Puts that into a User.txt and saves that under the USERS variable 
+
+USERS=$(sed '/^$/d' $INPUT | grep -vi "Authorized" | grep -vi "password" | sed 's/ (you)//' > Users.txt)
+
+#Gets the absolute file path 
+USERS=$(pwd)"/"$USERS
+
+#Removes the first line (Authorized Admins) and Authorized Users with all lines after it 
+#Greps and removes the passwords 
+#Removes the (you) on your user
+#Puts that into an Admins.txt and saves it in the Admins Variable 
+
+ADMINS=$(sed '1d;/Authorized Users/,$d' $INPUT | grep -vi "password" | sed 's/ (you)//'| sed '/^$/d' > Admins.txt)
+#Gets the absolute file path
+ADMINS=$(pwd)"/"$ADMINS
 
 #creates another directory for log and then enters that directory 
 sudo mkdir scriptLogs
@@ -22,23 +40,19 @@ echo "Changed root's password"
 #Changes Current Users Password
 while read user; do
 	echo "${user}:$PASSWORD" | sudo chpasswd
+	#give feedback if successful or not using if statement and exit code
 	echo "Changed ${user}'s password"
 done < $CURRENT_USERS 
 
-#Finds what users to add and what to remove 
-#difUsers=$(sudo diff $USERS $CURRENT_USERS > difUser.txt) 
-#
-echo  -------------- 
-comm -23 <(sort $USERS) <(sort $CURRENT_USERS)
-comm -13 <(sort $USERS) <(sort $CURRENT_USERS)
+ 
 
 
 #Stores users to remove and add in log files
+echo  -------------- 
+#comm compares 2 sorted files, and prints 3 different colums and the -# options remove colulms (unique to 1 | unique to 2 | common)
 
-sudo touch addedUsers.txt
-grep "<" $difUsers | cut -c 3- >> addedUsers.txt  
-sudo touch removedUsers.txt
-grep ">" $difUsers | cut -c 3- >> removedUsers.txt
+comm -13 <(sort $USERS) <(sort $CURRENT_USERS) >> removedUsers.txt #Unique to Current Users means that they are not desired 
+comm -23 <(sort $USERS) <(sort $CURRENT_USERS) >> addedUsers.txt #Unique to Users means that they do not exist and should  
 
 #adds users using log file and gives feedback
 while read user; do
