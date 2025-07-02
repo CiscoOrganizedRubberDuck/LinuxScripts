@@ -79,7 +79,7 @@ done<addedAdmins.txt
 
 #removes users from sudoers group
 while read admin; do 
-	sudo deluser {$admin} sudo	
+	sudo deluser $admin sudo	
 	echo "removed {$admin} from the sudo group"
 done<removedAdmins.txt
 
