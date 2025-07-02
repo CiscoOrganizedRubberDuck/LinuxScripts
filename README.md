@@ -1,4 +1,4 @@
-#LinuxScript v0.10 
+# LinuxScript v0.10 
 **Features** 
 - Adds and Removes Users 
 - Adds and Removes Admins
