@@ -1,0 +1,15 @@
+wireshark 
+netcat-traditional 
+ccleaner
+snort 
+nmap 
+zenmap 
+apache2 
+nginx 
+lighttpd 
+wireshark 
+tcpdump 
+nikto 
+ophcrack
+john
+hashcat 
