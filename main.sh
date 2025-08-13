@@ -1,59 +1,55 @@
 #!/bin/bash
+
+#Check is script was ran with sudo 
+if [$EUID -ne 0]; then 
+	echo "WARNING: This script needs sudo to run."
+	echo "Aborting..."
+	exit 1
+fi 
+
+#Constants
 PASSWORD="CyberPatriot2025!"
 
 #gets full location of both the Users.txt and Admins.txt   
-INPUT=$(pwd) 
-INPUT+="/Input.txt" 
-
-#Gets the absolute file path 
+RESOURCES=$(pwd)"/ScriptResources"
+MAL_PACK=$RESOURCES"./MalPackages.txt"
+INPUT=$(pwd)"/Input.txt" 
 USERS=$(pwd)"/Users.txt"
-
-#Removes blank lines *'/^$/'' is regex for starts and ends with nothing) and d removes lines  
-#Greps for the autorized header and removes them 
-#Greps for the passwords and removes them 
-#Removes the (you) text the s option replaces text using 's/old/new/' the double dash replaces it with nothing
-#Puts that into a User.txt and saves that under the USERS variable 
-sed '/^$/d' $INPUT | grep -vi "Authorized" | grep -vi "password" | sed 's/ (you)//' > $USERS
-
-#Gets the absolute file path
 ADMINS=$(pwd)"/Admins.txt"
 
-#Removes the first line (Authorized Admins) and Authorized Users with all lines after it 
-#Greps and removes the passwords 
-#Removes the (you) on your user
-#Puts that into an Admins.txt and saves it in the Admins Variable 
+
+#Cleans up the user portion of input.txt and puts it into a Users.txt 
+sed '/^$/d' $INPUT | grep -vi "Authorized" | grep -vi "password" | sed 's/ (you)//' > $USERS
+
+#Cleans up the admin portion of input.txt and puts it into a Admins.txt
 sed '1d;/Authorized Users/,$d' $INPUT | grep -vi "password" | sed 's/ (you)//'| sed '/^$/d' > $ADMINS
 
 #creates another directory for log and then enters that directory 
 sudo mkdir scriptLogs
 cd scriptLogs
 
-#Gets Human Users at the start of the Script and stores them in a text file 
+#Gets Human Users stores them in a text file 
 cut -d: -f1,3 /etc/passwd | egrep ':[0-9]{4}$' | cut -d: -f1 > CurrentHumanUsers.txt
 CURRENT_USERS="CurrentHumanUsers.txt" 
 
 #Change Root password 
 echo "root":$PASSWORD | sudo chpasswd 
-echo "Changed root's password"
+echo "Changed root's password" #TODO Use exit codes to ensure that this worked
 
 #Changes Current Users Password
 while read user; do
-	echo "${user}:$PASSWORD" | sudo chpasswd
-	#give feedback if successful or not using if statement and exit code
+	echo "${user}:$PASSWORD" | sudo chpasswd #TODO Give feedback if successful or not using if statement and exit code
 	echo "Changed ${user}'s password"
 done < $CURRENT_USERS 
 
-#Stores users to remove and add in log files
-echo  -------------- 
 #comm compares 2 sorted files, and prints 3 different colums and the -# options remove colulms (unique to 1 | unique to 2 | common)
-
 comm -13 <(sort $USERS) <(sort $CURRENT_USERS) >> removedUsers.txt #Unique to Current Users means that they are not desired 
 comm -23 <(sort $USERS) <(sort $CURRENT_USERS) >> addedUsers.txt #Unique to Users means that they do not exist and should  
 
 #adds users using log file and gives feedback
 while read user; do
 	sudo useradd  $user
-	echo "${user}:${PASSWORD}" | sudo chpasswd
+	echo $user:$PASSWORD | sudo chpasswd
 	echo "added {$user}"
 done<addedUsers.txt 
 
@@ -83,21 +79,32 @@ while read admin; do
 	echo "removed {$admin} from the sudo group"
 done<removedAdmins.txt
 
-
 #os 
 #Will be mint or ubuntu  
 #DISTRO="$(cat /etc/*-release | grep "^ID=" | cut -b 4-)"
 
+#update packages 
+apt update -y -q 
+
+#Install needed packages for script 
+apt install -y -q aptitude
 
 #UFW 
-sudo apt install ufw  
-sudo ufw enable 
+if![aptitude search  "?exact_name(UFW) ~i"]; then 
+	sudo apt install ufw  
+else
+	echo "ufw already installed"
+	sudo ufw enable
+fi 
+
+#Remove Malicous Packages
+while read package; do 
+	aptitude search "?exact_name(${package} ~i)" && aptitude purge "${package}" -y -q
+done < $MAL_PACK
 
 #Password Polcies 
 
-
 #Login Retries, LOGIN_TIMEOUT, min, max, warn age  
-
 
 #Ports
 #netstat --abno 
@@ -120,4 +127,5 @@ chmod 0644 /etc/passwd
 chmod 0640 /etc/shadow
 chmod 0640 /etc/gshadow
 
+sudo apt full-upgrade
 sudo apt upgrade 
