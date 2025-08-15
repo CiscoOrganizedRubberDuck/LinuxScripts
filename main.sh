@@ -11,8 +11,6 @@ fi
 
 #Constants
 PASSWORD="CyberPatriot2025!"
-
-#gets full location of both the Users.txt and Admins.txt   
 RESOURCES=$(pwd)"/ScriptResources"
 MAL_PACK=$RESOURCES"./MalPackages.txt"
 REQ_PACK=$(pwd)"/RequiredServices.txt"
@@ -51,7 +49,7 @@ comm -23 <(sort $USERS) <(sort $CURRENT_USERS) >> addedUsers.txt #Unique to User
 
 #adds users using log file and gives feedback
 while read user; do
-	sudo useradd $user
+	sudo useradd  $user
 	echo $user:$PASSWORD | sudo chpasswd
 	echo "added {$user}"
 done<addedUsers.txt 
@@ -104,6 +102,8 @@ fi
 while read package; do 
 	grep -v package $MAL_PACK > $MAL_PACK
 done < $REQ_PACK
+	sudo ufw enable
+fi 
 
 #Remove Malicous Packages
 while read package; do 
@@ -117,6 +117,7 @@ while read package; do
 	fi 
 	sudo system $package start 
 done < $REQ_PACK
+
 
 #Password Polcies 
 
