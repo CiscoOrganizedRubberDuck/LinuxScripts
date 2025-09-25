@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #Check is script was ran with sudo 
-if [$EUID -ne 0]; then 
+if [ $(id -u) -ne 0 ]; then 
 	echo "WARNING: This script needs sudo to run."
 	echo "Aborting..."
 	exit 1
@@ -20,14 +20,14 @@ ADMINS=$(pwd)"/Admins.txt"
 
 
 #Cleans up the user portion of input.txt and puts it into a Users.txt 
-sed '/^$/d' $INPUT | grep -vi "Authorized" | grep -vi "password" | sed 's/ (you)//' > $USERS
+sed "2, $(($(grep -n User $INPUT | cut -f1 -d:)-1)) {n;d}" $INPUT | sed '/^$/d' | grep -vi "Authorized" | sed 's/ (you)//' | sed -r 's/\s*-\s*//' > $USERS	
 
 #Cleans up the admin portion of input.txt and puts it into a Admins.txt
-sed '1d;/Authorized Users/,$d' $INPUT | grep -vi "password" | sed 's/ (you)//'| sed '/^$/d' > $ADMINS
+sed "2, $(($(grep -n User $INPUT | cut -f1 -d:)-1)) {n;d}" $INPUT | sed '1d;/Authorized Users/,$d' | sed 's/ (you)//'| sed '/^$/d' | sed -r 's/\s*-\s*//'  > $ADMINS
 
 #creates another directory for log and then enters that directory 
-sudo mkdir scriptLogs
-cd scriptLogs
+sudo mkdir ScriptLogs
+cd ScriptLogs
 
 #Gets Human Users stores them in a text file 
 cut -d: -f1,3 /etc/passwd | egrep ':[0-9]{4}$' | cut -d: -f1 > CurrentHumanUsers.txt
@@ -145,4 +145,5 @@ chmod 0640 /etc/shadow
 chmod 0640 /etc/gshadow
 
 sudo apt full-upgrade
-sudo apt upgrade 
+sudo apt upgrade
+
