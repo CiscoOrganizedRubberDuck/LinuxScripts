@@ -17,6 +17,15 @@ REQ_PACK=$(pwd)"/RequiredServices.txt"
 INPUT=$(pwd)"/Input.txt" 
 USERS=$(pwd)"/Users.txt"
 ADMINS=$(pwd)"/Admins.txt"
+LOGS=$(pwd)"ScriptLogs"
+
+#Log Files  
+CURRENT_USERS=$LOGS"/CurrentUsers.txt" 
+CURRENT_ADMINS=$LOGS"/CurrentAdmins.txt"
+REMOVED_USERS=$LOGS"/RemovedUsers.txt"
+ADDED_USERS=$LOGS"/AddedUsers.txt"
+REMOVED_ADMINS=$LOGS"/RemovedAdmins.txt"
+ADDED_ADMINS=$LOGS"/AddedAdmins.txt"
 
 
 #Cleans up the user portion of input.txt and puts it into a Users.txt 
@@ -26,12 +35,12 @@ sed "2, $(($(grep -n User "$INPUT" | cut -f1 -d:)-1)) {n;d}" "$INPUT" | sed '/^$
 sed "2, $(($(grep -n User "$INPUT" | cut -f1 -d:)-1)) {n;d}" "$INPUT" | sed '1d;/Authorized Users/,$d' | sed 's/ (you)//'| sed '/^$/d' | sed -r 's/\s*-\s*//'  > "$ADMINS" 
 
 #creates another directory for log and then enters that directory 
-sudo mkdir ScriptLogs
-cd ScriptLogs || { echo "Failure"; exit 1; } #Overkill 
+sudo mkdir "$LOGS"
+cd "$LOGS" || { echo "Failure to change Directory"; exit 1; } #Overkill 
 
 #Gets Human Users stores them in a text file 
-cut -d: -f1,3 /etc/passwd | grep -e ':[0-9]{4}$' | cut -d: -f1 > CurrentHumanUsers.txt
-CURRENT_USERS="CurrentHumanUsers.txt" 
+cut -d: -f1,3 /etc/passwd | grep -e ':[0-9]{4}$' | cut -d: -f1 > "$CURRENT_USERS"
+
 
 #Change Root password 
 echo "root":$PASSWORD | sudo chpasswd 
@@ -41,30 +50,33 @@ echo "Changed root's password" #TODO Use exit codes to ensure that this worked
 while read -r user; do
 	echo "${user}:$PASSWORD" | sudo chpasswd #TODO Give feedback if successful or not using if statement and exit code
 	echo "Changed ${user}'s password"
-done < $CURRENT_USERS 
+done < "$CURRENT_USERS" 
 
 #comm compares 2 sorted files, and prints 3 different colums and the -# options remove colulms (unique to 1 | unique to 2 | common)
-comm -13 <(sort "$USERS") <(sort $CURRENT_USERS) >> removedUsers.txt #Unique to Current Users means that they are not desired 
-comm -23 <(sort "$USERS") <(sort $CURRENT_USERS) >> addedUsers.txt #Unique to Users means that they do not exist and should  
+comm -13 <(sort "$USERS") <(sort "$CURRENT_USERS") >> "$REMOVED_USERS" #Unique to Current Users means that they are not desired 
+comm -23 <(sort "$USERS") <(sort "$CURRENT_USERS") >> "$ADDED_USERS" #Unique to Users means that they do not exist and should  
 
 #adds users using log file and gives feedback
 while read -r user; do
 	sudo useradd  "$user"
 	echo "$user":$PASSWORD | sudo chpasswd
 	echo "added {$user}"
-done<addedUsers.txt 
+done<"$ADDED_USERS"
 
 #removes users using log file and gives feedback
 while read -r user; do 
 	sudo userdel  "$user"
 	echo "removed ${user}"
-done<removedUsers.txt
+done<"$REMOVED_USERS"
 
-CURRENT_ADMINS=CurrentAdmins.txt
-(sudo grep "sudo" /etc/gshadow | cut -c 9- | tr , "\n" > $CURRENT_ADMINS) 
 
-comm -13 <(sort "$ADMINS") <(sort $CURRENT_ADMINS) >> removedAdmins.txt #Unique to Current Users means that they are not desired 
-comm -23 <(sort "$ADMINS") <(sort $CURRENT_ADMINS) >> addedAdmins.txt #Unique to Users means that they do not exist and should 
+sudo grep "sudo" /etc/gshadow | cut -c 9- | tr , "\n" > "$CURRENT_ADMINS"
+#TODO consider replacing with comm with ack 
+
+#Unique to Current Admins means that they are not desired 
+comm -13 <(sort "$ADMINS") <(sort "$CURRENT_ADMINS") >> "$REMOVED_ADMINS"
+#Unique to Admins means that they do not exist and should 
+comm -23 <(sort "$ADMINS") <(sort "$CURRENT_ADMINS") >> "$ADDED_ADMINS"
 
 echo  --------------
 
@@ -72,13 +84,13 @@ echo  --------------
 while read -r admin; do
 	sudo usermod -aG sudo "$admin"
 	echo "Added {$admin} to sudo group"
-done<addedAdmins.txt 
+done<"$ADDED_ADMINS" 
 
 #removes users from sudoers group
 while read -r admin; do 
 	sudo deluser "$admin" sudo	
 	echo "removed {$admin} from the sudo group"
-done<removedAdmins.txt
+done<"$REMOVED_ADMINS"
 
 #os 
 #Will be mint or ubuntu  
