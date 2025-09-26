@@ -158,6 +158,5 @@ chmod 0644 /etc/passwd
 chmod 0640 /etc/shadow
 chmod 0640 /etc/gshadow
 
-sudo apt full-upgrade
 sudo apt upgrade
 
