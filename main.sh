@@ -26,7 +26,7 @@ REMOVED_USERS=$LOGS"/RemovedUsers.txt"
 ADDED_USERS=$LOGS"/AddedUsers.txt"
 REMOVED_ADMINS=$LOGS"/RemovedAdmins.txt"
 ADDED_ADMINS=$LOGS"/AddedAdmins.txt"
-
+FILES=$LOGS"foundfiles.txt"
 
 #Cleans up the user portion of input.txt and puts it into a Users.txt 
 sed "2, $(($(grep -n User "$INPUT" | cut -f1 -d:)-1)) {n;d}" "$INPUT" | sed '/^$/d' | grep -vi "Authorized" | sed 's/ (you)//' | sed -r 's/\s*-\s*//' > "$USERS"	
@@ -144,14 +144,14 @@ done < "$REQ_PACK"
 #-O Displays owning process ID for when you need to do taskkill
 
 #Search User files 
-FILES="foundfiles.txt"
-touch $FILES
+
+touch "$FILES"
 {
 find /home -nowarn -type f -name "*.png" | grep -v "snap"  
 find /home -nowarn -type f -name "*.jpg" 
 find /home -nowarn -type f -name "*.mp4" 
 find /home -nowarn -type f -name "*.mp3" 
-}>> $FILES
+}>> "$FILES"
 
 #Chmod appropriate files 
 chmod 0644 /etc/passwd
