@@ -17,7 +17,7 @@ REQ_PACK=$(pwd)"/RequiredServices.txt"
 INPUT=$(pwd)"/Input.txt" 
 USERS=$(pwd)"/Users.txt"
 ADMINS=$(pwd)"/Admins.txt"
-LOGS=$(pwd)"ScriptLogs"
+LOGS=$(pwd)"/ScriptLogs"
 
 #Log Files  
 CURRENT_USERS=$LOGS"/CurrentUsers.txt" 
@@ -32,14 +32,14 @@ FILES=$LOGS"foundfiles.txt"
 sed "2, $(($(grep -n User "$INPUT" | cut -f1 -d:)-1)) {n;d}" "$INPUT" | sed '/^$/d' | grep -vi "Authorized" | sed 's/ (you)//' | sed -r 's/\s*-\s*//' > "$USERS"	
 
 #Cleans up the admin portion of input.txt and puts it into a Admins.txt
-sed "2, $(($(grep -n User "$INPUT" | cut -f1 -d:)-1)) {n;d}" "$INPUT" | sed '1d;/Authorized Users/,$d' | sed 's/ (you)//'| sed '/^$/d' | sed -r 's/\s*-\s*//'  > "$ADMINS" 
+sed "$(($(grep -n Users "$INPUT"| cut -d: -f1)+1)), $(wc  -l "$INPUT"| cut -d" " -f1)d" "$INPUT" |  sed "2, $(($(grep -n User "$INPUT" | cut -f1 -d:) -1)) {n;d}" | sed '1d	;/Authorized Users/,$d' | sed 's/ (you)//'| sed '/^$/d' | sed -r 's/\s*-\s*//'  > "$ADMINS" 
 
 #creates another directory for log and then enters that directory 
 sudo mkdir "$LOGS"
 cd "$LOGS" || { echo "Failure to change Directory"; exit 1; } #Overkill 
 
 #Gets Human Users stores them in a text file 
-cut -d: -f1,3 /etc/passwd | grep -e ':[0-9]{4}$' | cut -d: -f1 > "$CURRENT_USERS"
+cut -d: -f1,3 /etc/passwd | grep -E ':[0-9]{4}$' | cut -d: -f1 > "$CURRENT_USERS"
 
 
 #Change Root password 
