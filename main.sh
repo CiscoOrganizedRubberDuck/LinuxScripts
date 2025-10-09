@@ -118,7 +118,7 @@ install_ufw(){
 	apt-get update 
 	apt install -y aptitude --fix-missing
 
-	if ! aptitude search "?exact_name(UFW) ~i"; then 
+	if ! aptitude search "?exact-name(UFW) ~i"; then 
 		sudo apt install ufw --fix-missing
 	else
 		echo "ufw already installed"
@@ -139,12 +139,12 @@ add_and_remove_packages(){
 
 	#Remove Malicous Packages
 	while read -r package; do 
-		aptitude search "?exact_name(${package} ~i)" && aptitude purge "${package}" -y -q
+		aptitude search "?exact-name(${package}) ~i" && aptitude purge "${package}" -y -q
 	done < "$MAL_PACK"
 
 	#Add Required Packages 
 	while read -r package; do 
-		if ! aptitude search "?exact_name(${package} ~i)"; then  
+		if ! aptitude search "?exact-name(${package}) ~i"; then  
 			aptitude install "${package}" -y -q
 		fi 
 		sudo system "$package" start 
