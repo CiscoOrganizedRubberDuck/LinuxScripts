@@ -1,14 +1,5 @@
 #!/bin/bash
 
-#Check is script was ran with sudo 
-if [ "$(id -u)" -ne 0 ]; then 
-	echo "WARNING: This script needs sudo to run."
-	echo "Aborting..."
-	exit 1
-fi 
-
-#Check if input.txt has content 
-
 #Constants
 PASSWORD="CyberPatriot2025!"
 RESOURCES=$(pwd)"/ScriptResources"
@@ -26,109 +17,136 @@ REMOVED_USERS=$LOGS"/RemovedUsers.txt"
 ADDED_USERS=$LOGS"/AddedUsers.txt"
 REMOVED_ADMINS=$LOGS"/RemovedAdmins.txt"
 ADDED_ADMINS=$LOGS"/AddedAdmins.txt"
-FILES=$LOGS"foundfiles.txt"
+FILES=$LOGS"/FoundFiles.txt"
 
-#Cleans up the user portion of input.txt and puts it into a Users.txt 
-sed "2, $(($(grep -n User "$INPUT" | cut -f1 -d:)-1)) {n;d}" "$INPUT" | sed '/^$/d' | grep -vi "Authorized" | sed 's/ (you)//' | sed -r 's/\s*-\s*//' > "$USERS"	
+#Check is script was ran with sudo 
+check_root(){
+	if [ "$(id -u)" -ne 0 ]; then 
+		echo "WARNING: This script needs sudo to run."
+		echo "Aborting..."
+		exit 1
+	fi 
+}
 
-#Cleans up the admin portion of input.txt and puts it into a Admins.txt
-sed "$(($(grep -n Users "$INPUT"| cut -d: -f1)+1)), $(wc  -l "$INPUT"| cut -d" " -f1)d" "$INPUT" |  sed "2, $(($(grep -n User "$INPUT" | cut -f1 -d:) -1)) {n;d}" | sed '1d	;/Authorized Users/,$d' | sed 's/ (you)//'| sed '/^$/d' | sed -r 's/\s*-\s*//'  > "$ADMINS" 
+#Check if input.txt has content 
+check_input_txt(){
+	if ! grep -i "$INPUT" "Authorized"; then 
+		echo "WARNING: Improper Input.txt format"
+		return 1
+	else 
+		return 0
+	fi 
 
-#creates another directory for log and then enters that directory 
-sudo mkdir "$LOGS"
-cd "$LOGS" || { echo "Failure to change Directory"; exit 1; } #Overkill 
+}
 
-#Gets Human Users stores them in a text file 
-cut -d: -f1,3 /etc/passwd | grep -E ':[0-9]{4}$' | cut -d: -f1 > "$CURRENT_USERS"
+add_and_remove_users() {
+	#Cleans up the user portion of input.txt and puts it into a Users.txt 
+	sed "2, $(($(grep -n User "$INPUT" | cut -f1 -d:)-1)) {n;d}" "$INPUT" | sed '/^$/d' | grep -vi "Authorized" | sed 's/ (you)//' | sed -r 's/\s*-\s*//' > "$USERS"	
 
+	#Cleans up the admin portion of input.txt and puts it into a Admins.txt
+	sed "$(($(grep -n Users "$INPUT"| cut -d: -f1)+1)), $(wc  -l "$INPUT"| cut -d" " -f1)d" "$INPUT" |  sed "2, $(($(grep -n User "$INPUT" | cut -f1 -d:) -1)) {n;d}" | sed '1d	;/Authorized Users/,$d' | sed 's/ (you)//'| sed '/^$/d' | sed -r 's/\s*-\s*//'  > "$ADMINS" 
 
-#Change Root password 
-echo "root":$PASSWORD | sudo chpasswd 
-echo "Changed root's password" #TODO Use exit codes to ensure that this worked
-
-#Changes Current Users Password
-while read -r user; do
-	echo "${user}:$PASSWORD" | sudo chpasswd #TODO Give feedback if successful or not using if statement and exit code
-	echo "Changed ${user}'s password"
-done < "$CURRENT_USERS" 
-
-#comm compares 2 sorted files, and prints 3 different colums and the -# options remove colulms (unique to 1 | unique to 2 | common)
-comm -13 <(sort "$USERS") <(sort "$CURRENT_USERS") >> "$REMOVED_USERS" #Unique to Current Users means that they are not desired 
-comm -23 <(sort "$USERS") <(sort "$CURRENT_USERS") >> "$ADDED_USERS" #Unique to Users means that they do not exist and should  
-
-#adds users using log file and gives feedback
-while read -r user; do
-	sudo useradd  "$user"
-	echo "$user":$PASSWORD | sudo chpasswd
-	echo "added {$user}"
-done<"$ADDED_USERS"
-
-#removes users using log file and gives feedback
-while read -r user; do 
-	sudo userdel  "$user"
-	echo "removed ${user}"
-done<"$REMOVED_USERS"
+	#Gets Human Users stores them in a text file 
+	cut -d: -f1,3 /etc/passwd | grep -E ':[0-9]{4}$' | cut -d: -f1 > "$CURRENT_USERS"
 
 
-sudo grep "sudo" /etc/gshadow | cut -c 9- | tr , "\n" > "$CURRENT_ADMINS"
-#TODO consider replacing with comm with ack 
+	#Change Root password 
+	echo "root":$PASSWORD | sudo chpasswd 
+	echo "Changed root's password" #TODO Use exit codes to ensure that this worked
 
-#Unique to Current Admins means that they are not desired 
-comm -13 <(sort "$ADMINS") <(sort "$CURRENT_ADMINS") >> "$REMOVED_ADMINS"
-#Unique to Admins means that they do not exist and should 
-comm -23 <(sort "$ADMINS") <(sort "$CURRENT_ADMINS") >> "$ADDED_ADMINS"
+	#Changes Current Users Password
+	while read -r user; do
+		echo "${user}:$PASSWORD" | sudo chpasswd #TODO Give feedback if successful or not using if statement and exit code
+		echo "Changed ${user}'s password"
+	done < "$CURRENT_USERS" 
 
-echo  --------------
+	#comm compares 2 sorted files, and prints 3 different colums and the -# options remove colulms (unique to 1 | unique to 2 | common)
+	comm -13 <(sort "$USERS") <(sort "$CURRENT_USERS") >> "$REMOVED_USERS" #Unique to Current Users means that they are not desired 
+	comm -23 <(sort "$USERS") <(sort "$CURRENT_USERS") >> "$ADDED_USERS" #Unique to Users means that they do not exist and should  
 
-#adds users to sudoers group
-while read -r admin; do
-	sudo usermod -aG sudo "$admin"
-	echo "Added {$admin} to sudo group"
-done<"$ADDED_ADMINS" 
+	#adds users using log file and gives feedback
+	while read -r user; do
+		sudo useradd  "$user"
+		echo "$user":$PASSWORD | sudo chpasswd
+		echo "added {$user}"
+	done<"$ADDED_USERS"
 
-#removes users from sudoers group
-while read -r admin; do 
-	sudo deluser "$admin" sudo	
-	echo "removed {$admin} from the sudo group"
-done<"$REMOVED_ADMINS"
+	#removes users using log file and gives feedback
+	while read -r user; do 
+		sudo userdel  "$user"
+		echo "removed ${user}"
+	done<"$REMOVED_USERS"
 
-#os 
-#Will be mint or ubuntu  
-#DISTRO="$(cat /etc/*-release | grep "^ID=" | cut -b 4-)"
 
-#update packages 
-apt update -y -q 
+	sudo grep "sudo" /etc/gshadow | cut -c 9- | tr , "\n" > "$CURRENT_ADMINS"
+	#TODO consider replacing with comm with ack 
 
-#Install needed packages for script 
-apt install -y -q aptitude
+	#Unique to Current Admins means that they are not desired 
+	comm -13 <(sort "$ADMINS") <(sort "$CURRENT_ADMINS") >> "$REMOVED_ADMINS"
+	#Unique to Admins means that they do not exist and should 
+	comm -23 <(sort "$ADMINS") <(sort "$CURRENT_ADMINS") >> "$ADDED_ADMINS"
+
+	echo  --------------
+
+	#adds users to sudoers group
+	while read -r admin; do
+		sudo usermod -aG sudo "$admin"
+		echo "Added {$admin} to sudo group"
+	done<"$ADDED_ADMINS" 
+
+	#removes users from sudoers group
+	while read -r admin; do 
+		sudo deluser "$admin" sudo	
+		echo "removed {$admin} from the sudo group"
+	done<"$REMOVED_ADMINS"
+}
+
+
+print_OS_info(){
+	#os 
+	#Will be mint or ubuntu 
+	echo "------OS INFO------" 
+	DISTRO="$(cat /etc/*-release | grep "^ID=" | cut -b 4-)"
+	echo "$DISTRO"
+	echo "-------------------"
+}
+
 
 #UFW 
-if ! aptitude search "?exact_name(UFW) ~i"; then 
-	sudo apt install ufw  
-else
-	echo "ufw already installed"
-fi 
-	sudo ufw enable #TODO ufw status if enable to avoid error message 
+install_ufw(){
+	#Install needed packages for script 
+	apt install -y -q aptitude
 
-#Remove Required Packages from Malicous packages (rare circumstance hacking tool is required)
-while read -r package; do 
-	# shellcheck disable=SC2094
-	grep -v package "$MAL_PACK" > "$MAL_PACK" 
-done < "$REQ_PACK"
-
-
-#Remove Malicous Packages
-while read -r package; do 
-	aptitude search "?exact_name(${package} ~i)" && aptitude purge "${package}" -y -q
-done < "$MAL_PACK"
-
-#Add Required Packages 
-while read -r package; do 
-	if ! aptitude search "?exact_name(${package} ~i)"; then  
-		aptitude install "${package}" -y -q
+	if ! aptitude search "?exact_name(UFW) ~i"; then 
+		sudo apt install ufw  
+	else
+		echo "ufw already installed"
 	fi 
-	sudo system "$package" start 
-done < "$REQ_PACK"
+		sudo ufw enable #TODO ufw status if enable to avoid error message 
+}
+
+add_and_remove_packages(){
+	#Remove Required Packages from Malicous packages (rare circumstance hacking tool is required)
+	while read -r package; do 
+		# shellcheck disable=SC2094
+		grep -v package "$MAL_PACK" > "$MAL_PACK" 
+	done < "$REQ_PACK"
+
+
+	#Remove Malicous Packages
+	while read -r package; do 
+		aptitude search "?exact_name(${package} ~i)" && aptitude purge "${package}" -y -q
+	done < "$MAL_PACK"
+
+	#Add Required Packages 
+	while read -r package; do 
+		if ! aptitude search "?exact_name(${package} ~i)"; then  
+			aptitude install "${package}" -y -q
+		fi 
+		sudo system "$package" start 
+	done < "$REQ_PACK"
+}
+
 
 
 #Password Polcies 
@@ -143,20 +161,49 @@ done < "$REQ_PACK"
 #-N makes names to numbers 
 #-O Displays owning process ID for when you need to do taskkill
 
-#Search User files 
+#Searchs User files and stories in a log file
+search_user_files(){
+	touch "$FILES"
+	{
+	find /home -nowarn -type f -name "*.png" | grep -v "snap"  
+	find /home -nowarn -type f -name "*.jpg" 
+	find /home -nowarn -type f -name "*.mp4" 
+	find /home -nowarn -type f -name "*.mp3" 
+	}>> "$FILES"
+}
 
-touch "$FILES"
-{
-find /home -nowarn -type f -name "*.png" | grep -v "snap"  
-find /home -nowarn -type f -name "*.jpg" 
-find /home -nowarn -type f -name "*.mp4" 
-find /home -nowarn -type f -name "*.mp3" 
-}>> "$FILES"
+fix_file_permissions(){
+	#Chmod appropriate files 
+	chmod 0644 /etc/passwd
+	chmod 0640 /etc/shadow
+	chmod 0640 /etc/gshadow
+	chmod 440 /etc/sudoers
 
-#Chmod appropriate files 
-chmod 0644 /etc/passwd
-chmod 0640 /etc/shadow
-chmod 0640 /etc/gshadow
+	#Disable root login
+	passwd -l root
+}
 
-sudo apt upgrade
+main(){
+	check_root 
+	
+	#Create Logging Directory 
+	mkdir "$LOGS"
+	cd "$LOGS" || { echo "Failure to change Directory"; exit 1; } #Overkill 
+	
+	#update packages
+	apt update -y -q 
+	
+	#Only do the users stuff if there is an Input.txt
+	check_input_txt
+	INPUTSTATUS=$? 
+	if $INPUTSTATUS -ne 1; then 
+		add_and_remove_users
+	fi 
 
+	add_and_remove_users
+	install_ufw
+	fix_file_permissions
+}
+
+main
+sudo apt -y upgrade 
