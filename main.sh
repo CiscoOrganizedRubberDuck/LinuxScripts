@@ -3,7 +3,7 @@
 #Constants
 PASSWORD="CyberPatriot2025!"
 RESOURCES=$(pwd)"/ScriptResources"
-MAL_PACK=$RESOURCES"./MalPackages.txt"
+MAL_PACK=$RESOURCES"/MalPackages.txt"
 REQ_PACK=$(pwd)"/RequiredServices.txt"
 INPUT=$(pwd)"/Input.txt" 
 USERS=$(pwd)"/Users.txt"
@@ -30,7 +30,7 @@ check_root(){
 
 #Check if input.txt has content 
 check_input_txt(){
-	if ! grep -i "$INPUT" "Authorized"; then 
+	if ! grep -i "Authorized" "$INPUT"; then 
 		echo "WARNING: Improper Input.txt format"
 		return 1
 	else 
@@ -115,10 +115,11 @@ print_OS_info(){
 #UFW 
 install_ufw(){
 	#Install needed packages for script 
-	apt install -y -q aptitude
+	apt-get update 
+	apt install -y aptitude --fix-missing
 
 	if ! aptitude search "?exact_name(UFW) ~i"; then 
-		sudo apt install ufw  
+		sudo apt install ufw --fix-missing
 	else
 		echo "ufw already installed"
 	fi 
@@ -126,6 +127,9 @@ install_ufw(){
 }
 
 add_and_remove_packages(){
+	apt-get update 
+	apt install -y aptitude --fix-missing
+	
 	#Remove Required Packages from Malicous packages (rare circumstance hacking tool is required)
 	while read -r package; do 
 		# shellcheck disable=SC2094
@@ -145,6 +149,9 @@ add_and_remove_packages(){
 		fi 
 		sudo system "$package" start 
 	done < "$REQ_PACK"
+
+	apt autoremove -y 
+	apt autoclean 
 }
 
 
@@ -178,6 +185,8 @@ fix_file_permissions(){
 	chmod 0640 /etc/shadow
 	chmod 0640 /etc/gshadow
 	chmod 440 /etc/sudoers
+	
+	#TODO fix UID vulns  
 
 	#Disable root login
 	passwd -l root
@@ -190,17 +199,20 @@ main(){
 	mkdir "$LOGS"
 	cd "$LOGS" || { echo "Failure to change Directory"; exit 1; } #Overkill 
 	
+	#Fix DNS issues?  
+	echo "nameserver 8.8.8.8" | sudo tee /etc/resolv.conf > /dev/null
+	
 	#update packages
-	apt update -y -q 
+	apt-get update -y -q 
 	
 	#Only do the users stuff if there is an Input.txt
 	check_input_txt
 	INPUTSTATUS=$? 
-	if $INPUTSTATUS -ne 1; then 
+	if [ $INPUTSTATUS -eq 0 ]; then 
 		add_and_remove_users
 	fi 
 
-	add_and_remove_users
+	add_and_remove_packages
 	install_ufw
 	fix_file_permissions
 }
