@@ -288,6 +288,7 @@ main(){
 	fix_file_permissions
 	passpolicy
 	search_user_files
+	print_OS_info 
 }
 
 
