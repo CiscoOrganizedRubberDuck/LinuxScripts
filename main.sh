@@ -277,6 +277,7 @@ echo "✓ Null passwords are now disallowed"
 #-------------------------------------------------
 # 4. Summary
 #-------------------------------------------------
+
 echo
 echo "=== Verification Summary ==="
 grep "pam_unix.so" /etc/pam.d/common-password
