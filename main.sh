@@ -192,30 +192,6 @@ fix_file_permissions(){
 	passwd -l root
 }
 
-main(){
-	check_root 
-	
-	#Create Logging Directory 
-	mkdir "$LOGS"
-	cd "$LOGS" || { echo "Failure to change Directory"; exit 1; } #Overkill 
-	
-	#Fix DNS issues?  
-	echo "nameserver 8.8.8.8" | sudo tee /etc/resolv.conf > /dev/null
-	
-	#update packages
-	apt-get update -y -q 
-	
-	#Only do the users stuff if there is an Input.txt
-	check_input_txt
-	INPUTSTATUS=$? 
-	if [ $INPUTSTATUS -eq 0 ]; then 
-		add_and_remove_users
-	fi 
-
-	add_and_remove_packages
-	install_ufw
-	fix_file_permissions
-}
 passpolicy(){
 
 timestamp=$(date +%Y%m%d-%H%M%S)
@@ -286,6 +262,33 @@ echo
 echo "Backups saved in $backup_dir"
 echo "CyberPatriot policy fixes applied successfully."
 }
+
+main(){
+	check_root 
+	
+	#Create Logging Directory 
+	mkdir "$LOGS"
+	cd "$LOGS" || { echo "Failure to change Directory"; exit 1; } #Overkill 
+	
+	#Fix DNS issues?  
+	echo "nameserver 8.8.8.8" | sudo tee /etc/resolv.conf > /dev/null
+	
+	#update packages
+	apt-get update -y -q 
+	
+	#Only do the users stuff if there is an Input.txt
+	check_input_txt
+	INPUTSTATUS=$? 
+	if [ $INPUTSTATUS -eq 0 ]; then 
+		add_and_remove_users
+	fi 
+
+	add_and_remove_packages
+	install_ufw
+	fix_file_permissions
+	passpolicy
+}
+
 
 main
 sudo apt -y upgrade 
