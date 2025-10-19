@@ -287,6 +287,7 @@ main(){
 	install_ufw
 	fix_file_permissions
 	passpolicy
+	search_user_files
 }
 
 
