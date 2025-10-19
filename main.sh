@@ -291,6 +291,6 @@ main(){
 
 
 main
-sudo apt -y upgrade 
+sudo apt-get -y upgrade 
 
 
