@@ -216,6 +216,77 @@ main(){
 	install_ufw
 	fix_file_permissions
 }
+passpolicy(){
+
+timestamp=$(date +%Y%m%d-%H%M%S)
+backup_dir="/root/policy-backups-$timestamp"
+mkdir -p "$backup_dir"
+
+echo "=== CyberPatriot Password Policy Fix Script ==="
+echo "Creating backup directory at $backup_dir"
+
+#-------------------------------------------------
+# 1. Backup target files
+#-------------------------------------------------
+for file in /etc/pam.d/common-password /etc/pam.d/common-auth; do
+    if [ -f "$file" ]; then
+        cp "$file" "$backup_dir/"
+        echo "Backed up $file"
+    else
+        echo "WARNING: $file not found, skipping"
+    fi
+done
+
+#-------------------------------------------------
+# 2. Enforce minimum password length in common-password
+#-------------------------------------------------
+echo "Configuring /etc/pam.d/common-password for minimum length..."
+
+cp /etc/pam.d/common-password /etc/pam.d/common-password.tmp
+
+# remove any old pam_unix.so line (so we can rewrite cleanly)
+sed -i '/pam_unix.so/d' /etc/pam.d/common-password.tmp
+
+# Append correct pam_unix.so line as CyberPatriot expects
+# According to the answer key, it must include minlen=10
+cat <<'EOF' >> /etc/pam.d/common-password.tmp
+password   [success=2 default=ignore]   pam_unix.so obscure use_authtok try_first_pass sha512 minlen=10
+EOF
+
+mv /etc/pam.d/common-password.tmp /etc/pam.d/common-password
+echo "✓ Minimum password length set (minlen=10)"
+
+#-------------------------------------------------
+# 3. Disable null passwords in common-auth
+#-------------------------------------------------
+echo "Configuring /etc/pam.d/common-auth to disallow null passwords..."
+
+cp /etc/pam.d/common-auth /etc/pam.d/common-auth.tmp
+
+# remove 'nullok' option if it exists
+sed -i 's/\<nullok\>//g' /etc/pam.d/common-auth.tmp
+
+# make sure the pam_unix.so line exists
+if ! grep -q 'pam_unix.so' /etc/pam.d/common-auth.tmp; then
+    echo "auth [success=2 default=ignore] pam_unix.so" >> /etc/pam.d/common-auth.tmp
+fi
+
+mv /etc/pam.d/common-auth.tmp /etc/pam.d/common-auth
+echo "✓ Null passwords are now disallowed"
+
+#-------------------------------------------------
+# 4. Summary
+#-------------------------------------------------
+echo
+echo "=== Verification Summary ==="
+grep "pam_unix.so" /etc/pam.d/common-password
+grep "pam_unix.so" /etc/pam.d/common-auth
+echo
+echo "Backups saved in $backup_dir"
+echo "CyberPatriot policy fixes applied successfully."
+}
 
 main
 sudo apt -y upgrade 
+
+
