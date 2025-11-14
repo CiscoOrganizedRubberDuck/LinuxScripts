@@ -17,3 +17,7 @@ ophcrack
 john 
 hashcat
 nikto
+ftp 
+doona 
+xproble
+squid
