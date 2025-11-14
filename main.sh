@@ -263,6 +263,19 @@ echo "Backups saved in $backup_dir"
 echo "CyberPatriot policy fixes applied successfully."
 }
 
+configure_setting(){
+	local config_file="$1"
+	local setting="$2"
+	local value="$3"
+
+	if grep -q "^[#]*\s*${setting}" "$config_file"; then
+        sed -i "s/^[#]*\s*${setting}.*/${setting} ${value}/" "$config_file"
+    else
+        echo "${setting} ${value}" >> "$config_file"
+    fi
+}
+
+
 main(){
 	check_root 
 	
