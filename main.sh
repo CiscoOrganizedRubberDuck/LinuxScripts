@@ -58,7 +58,13 @@ add_and_remove_users() {
 	while read -r user; do
 		echo "${user}:$PASSWORD" | sudo chpasswd #TODO Give feedback if successful or not using if statement and exit code
 		echo "Changed ${user}'s password"
+		
+		sudo chage -m 1 "${user}" #Set min password age to 1 day
+		sudo chage -M 90 "${user}" #Set max password age to 90 days 
+		echo "Changed ${user}'s password min and max age"
 	done < "$CURRENT_USERS" 
+
+	
 
 	#comm compares 2 sorted files, and prints 3 different colums and the -# options remove colulms (unique to 1 | unique to 2 | common)
 	comm -13 <(sort "$USERS") <(sort "$CURRENT_USERS") >> "$REMOVED_USERS" #Unique to Current Users means that they are not desired 
@@ -136,7 +142,6 @@ add_and_remove_packages(){
 		grep -v package "$MAL_PACK" > "$MAL_PACK" 
 	done < "$REQ_PACK"
 
-
 	#Remove Malicous Packages
 	while read -r package; do 
 		aptitude search "?exact-name(${package}) ~i" && aptitude purge "${package}" -y -q
@@ -175,7 +180,8 @@ search_user_files(){
 	find /home -nowarn -type f -name "*.png" | grep -v "snap"  
 	find /home -nowarn -type f -name "*.jpg" 
 	find /home -nowarn -type f -name "*.mp4" 
-	find /home -nowarn -type f -name "*.mp3" 
+	find /home -nowarn -type f -name "*.mp3"
+	find /home -nowarn -type f -name "*.ogg" 
 	}>> "$FILES"
 }
 
