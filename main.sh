@@ -58,7 +58,13 @@ add_and_remove_users() {
 	while read -r user; do
 		echo "${user}:$PASSWORD" | sudo chpasswd #TODO Give feedback if successful or not using if statement and exit code
 		echo "Changed ${user}'s password"
+		
+		sudo chage -m 1 "${user}" #Set min password age to 1 day
+		sudo chage -M 90 "${user}" #Set max password age to 90 days 
+		echo "Changed ${user}'s password min and max age"
 	done < "$CURRENT_USERS" 
+
+	
 
 	#comm compares 2 sorted files, and prints 3 different colums and the -# options remove colulms (unique to 1 | unique to 2 | common)
 	comm -13 <(sort "$USERS") <(sort "$CURRENT_USERS") >> "$REMOVED_USERS" #Unique to Current Users means that they are not desired 
@@ -136,7 +142,6 @@ add_and_remove_packages(){
 		grep -v package "$MAL_PACK" > "$MAL_PACK" 
 	done < "$REQ_PACK"
 
-
 	#Remove Malicous Packages
 	while read -r package; do 
 		aptitude search "?exact-name(${package}) ~i" && aptitude purge "${package}" -y -q
@@ -175,7 +180,8 @@ search_user_files(){
 	find /home -nowarn -type f -name "*.png" | grep -v "snap"  
 	find /home -nowarn -type f -name "*.jpg" 
 	find /home -nowarn -type f -name "*.mp4" 
-	find /home -nowarn -type f -name "*.mp3" 
+	find /home -nowarn -type f -name "*.mp3"
+	find /home -nowarn -type f -name "*.ogg" 
 	}>> "$FILES"
 }
 
@@ -191,6 +197,90 @@ fix_file_permissions(){
 	#Disable root login
 	passwd -l root
 }
+
+passpolicy(){
+
+timestamp=$(date +%Y%m%d-%H%M%S)
+backup_dir="/root/policy-backups-$timestamp"
+mkdir -p "$backup_dir"
+
+echo "=== CyberPatriot Password Policy Fix Script ==="
+echo "Creating backup directory at $backup_dir"
+
+#-------------------------------------------------
+# 1. Backup target files
+#-------------------------------------------------
+for file in /etc/pam.d/common-password /etc/pam.d/common-auth; do
+    if [ -f "$file" ]; then
+        cp "$file" "$backup_dir/"
+        echo "Backed up $file"
+    else
+        echo "WARNING: $file not found, skipping"
+    fi
+done
+
+#-------------------------------------------------
+# 2. Enforce minimum password length in common-password
+#-------------------------------------------------
+echo "Configuring /etc/pam.d/common-password for minimum length..."
+
+cp /etc/pam.d/common-password /etc/pam.d/common-password.tmp
+
+# remove any old pam_unix.so line (so we can rewrite cleanly)
+sed -i '/pam_unix.so/d' /etc/pam.d/common-password.tmp
+
+# Append correct pam_unix.so line as CyberPatriot expects
+# According to the answer key, it must include minlen=10
+cat <<'EOF' >> /etc/pam.d/common-password.tmp
+password   [success=2 default=ignore]   pam_unix.so obscure use_authtok try_first_pass sha512 minlen=10
+EOF
+
+mv /etc/pam.d/common-password.tmp /etc/pam.d/common-password
+echo "✓ Minimum password length set (minlen=10)"
+
+#-------------------------------------------------
+# 3. Disable null passwords in common-auth
+#-------------------------------------------------
+echo "Configuring /etc/pam.d/common-auth to disallow null passwords..."
+
+cp /etc/pam.d/common-auth /etc/pam.d/common-auth.tmp
+
+# remove 'nullok' option if it exists
+sed -i 's/\<nullok\>//g' /etc/pam.d/common-auth.tmp
+
+# make sure the pam_unix.so line exists
+if ! grep -q 'pam_unix.so' /etc/pam.d/common-auth.tmp; then
+    echo "auth [success=2 default=ignore] pam_unix.so" >> /etc/pam.d/common-auth.tmp
+fi
+
+mv /etc/pam.d/common-auth.tmp /etc/pam.d/common-auth
+echo "✓ Null passwords are now disallowed"
+
+#-------------------------------------------------
+# 4. Summary
+#-------------------------------------------------
+
+echo
+echo "=== Verification Summary ==="
+grep "pam_unix.so" /etc/pam.d/common-password
+grep "pam_unix.so" /etc/pam.d/common-auth
+echo
+echo "Backups saved in $backup_dir"
+echo "CyberPatriot policy fixes applied successfully."
+}
+
+configure_setting(){
+	local config_file="$1"
+	local setting="$2"
+	local value="$3"
+
+	if grep -q "^[#]*\s*${setting}" "$config_file"; then
+        sed -i "s/^[#]*\s*${setting}.*/${setting} ${value}/" "$config_file"
+    else
+        echo "${setting} ${value}" >> "$config_file"
+    fi
+}
+
 
 main(){
 	check_root 
@@ -215,7 +305,13 @@ main(){
 	add_and_remove_packages
 	install_ufw
 	fix_file_permissions
+	passpolicy
+	search_user_files
+	print_OS_info 
 }
 
+
 main
-sudo apt -y upgrade 
+sudo apt-get -y upgrade 
+
+
