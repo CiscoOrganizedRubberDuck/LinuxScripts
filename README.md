@@ -1,10 +1,11 @@
-# LinuxScript v0.10 
+# LinuxScript v0.40 
 **Features** 
 - Adds and Removes Users 
 - Adds and Removes Admins
 - Changes all user passwords to "CyberPartriot2025!"  
 - Enables UFW 
-- Logs will be stored in a seperate file  
+- Logs will be stored in a seperate file
+- Ability to add and remove packages  
 
 **How to use?**
 - Copy and Paste the whole admins and users box into Input.txt 
