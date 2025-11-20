@@ -324,6 +324,6 @@ main(){
 
 
 main
-sudo apt-get -y upgrade 
+sudo apt -y full-upgrade 
 
 
