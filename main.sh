@@ -273,11 +273,14 @@ echo "CyberPatriot policy fixes applied successfully."
 }
 
 configure_password_policy(){
-	echo hi
+	apt-get -y install libpam-pwquality 
 }
 
 configure_audit_policy(){
-	sudo apt-y install  auditd
+	apt-get -y install auditd
+	systemctl start auditd
+	systemctl enable auditd
+
 }
 
 configure_setting(){
