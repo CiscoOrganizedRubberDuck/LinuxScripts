@@ -123,10 +123,10 @@ print_OS_info(){
 install_ufw(){
 	#Install needed packages for script 
 	apt-get update 
-	apt install -y aptitude --fix-missing
+	apt-get update && apt-get install -y aptitude --fix-missing
 
 	if ! aptitude search "?exact-name(UFW) ~i"; then 
-		sudo apt install ufw --fix-missing
+		sudo apt-get install ufw --fix-missing
 	else
 		echo "ufw already installed"
 	fi 
@@ -134,8 +134,7 @@ install_ufw(){
 }
 
 add_and_remove_packages(){
-	apt-get update 
-	apt install -y aptitude --fix-missing
+	apt-get update && apt-get install -y aptitude --fix-missing
 	
 	#Write PACKS into MAL_PACKS. This allows the us to keep PACKs later for manually removing packages if needed
 	cat "$PACKS" > "$MAL_PACKS"
@@ -158,8 +157,8 @@ add_and_remove_packages(){
 		sudo system "$package" start 
 	done < "$REQ_PACK"
 
-	apt autoremove -y 
-	apt autoclean 
+	apt-get autoremove -y 
+	apt-get autoclean 
 }
 
 
@@ -271,6 +270,14 @@ grep "pam_unix.so" /etc/pam.d/common-auth
 echo
 echo "Backups saved in $backup_dir"
 echo "CyberPatriot policy fixes applied successfully."
+}
+
+configure_password_policy(){
+	echo hi
+}
+
+configure_audit_policy(){
+	sudo apt-y install  auditd
 }
 
 configure_setting(){
