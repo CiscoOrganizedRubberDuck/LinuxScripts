@@ -3,7 +3,8 @@
 #Constants
 PASSWORD="CyberPatriot2025!"
 RESOURCES=$(pwd)"/ScriptResources"
-MAL_PACK=$RESOURCES"/MalPackages.txt"
+PACKS=$RESOURCES"/Packages.txt"
+MAL_PACKS=$RESOURCES"/MalPackages.txt"
 REQ_PACK=$(pwd)"/RequiredServices.txt"
 INPUT=$(pwd)"/Input.txt" 
 USERS=$(pwd)"/Users.txt"
@@ -136,16 +137,18 @@ add_and_remove_packages(){
 	apt-get update 
 	apt install -y aptitude --fix-missing
 	
-	#Remove Required Packages from Malicous packages (rare circumstance hacking tool is required)
+	#Write PACKS into MAL_PACKS. This allows the us to keep PACKs later for manually removing packages if needed
+	echo "$PACKS" > "$MAL_PACKS"
+	
+	#Remove Required Packages from Malicous packages 
 	while read -r package; do 
-		# shellcheck disable=SC2094
-		grep -v package "$MAL_PACK" > "$MAL_PACK" 
+		echo "$MAL_PACKS" | sed "/$package/d"  > "$MAL_PACKS"
 	done < "$REQ_PACK"
 
 	#Remove Malicous Packages
 	while read -r package; do 
 		aptitude search "?exact-name(${package}) ~i" && aptitude purge "${package}" -y -q
-	done < "$MAL_PACK"
+	done < "$MAL_PACKS"
 
 	#Add Required Packages 
 	while read -r package; do 
@@ -174,6 +177,7 @@ add_and_remove_packages(){
 #-O Displays owning process ID for when you need to do taskkill
 
 #Searchs User files and stories in a log file
+
 search_user_files(){
 	touch "$FILES"
 	{
@@ -280,6 +284,7 @@ configure_setting(){
         echo "${setting} ${value}" >> "$config_file"
     fi
 }
+
 
 
 main(){
