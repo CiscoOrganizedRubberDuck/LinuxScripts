@@ -138,11 +138,11 @@ add_and_remove_packages(){
 	apt install -y aptitude --fix-missing
 	
 	#Write PACKS into MAL_PACKS. This allows the us to keep PACKs later for manually removing packages if needed
-	echo "$PACKS" > "$MAL_PACKS"
+	cat "$PACKS" > "$MAL_PACKS"
 	
 	#Remove Required Packages from Malicous packages 
 	while read -r package; do 
-		echo "$MAL_PACKS" | sed "/$package/d"  > "$MAL_PACKS"
+		sed -i "/$package/d" "$MAL_PACKS"
 	done < "$REQ_PACK"
 
 	#Remove Malicous Packages
