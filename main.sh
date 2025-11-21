@@ -3,7 +3,8 @@
 #Constants
 PASSWORD="CyberPatriot2025!"
 RESOURCES=$(pwd)"/ScriptResources"
-MAL_PACK=$RESOURCES"/MalPackages.txt"
+PACKS=$RESOURCES"/Packages.txt"
+MAL_PACKS=$RESOURCES"/MalPackages.txt"
 REQ_PACK=$(pwd)"/RequiredServices.txt"
 INPUT=$(pwd)"/Input.txt" 
 USERS=$(pwd)"/Users.txt"
@@ -122,10 +123,10 @@ print_OS_info(){
 install_ufw(){
 	#Install needed packages for script 
 	apt-get update 
-	apt install -y aptitude --fix-missing
+	apt-get update && apt-get install -y aptitude --fix-missing
 
 	if ! aptitude search "?exact-name(UFW) ~i"; then 
-		sudo apt install ufw --fix-missing
+		sudo apt-get install ufw --fix-missing
 	else
 		echo "ufw already installed"
 	fi 
@@ -133,19 +134,20 @@ install_ufw(){
 }
 
 add_and_remove_packages(){
-	apt-get update 
-	apt install -y aptitude --fix-missing
+	apt-get update && apt-get install -y aptitude --fix-missing
 	
-	#Remove Required Packages from Malicous packages (rare circumstance hacking tool is required)
+	#Write PACKS into MAL_PACKS. This allows the us to keep PACKs later for manually removing packages if needed
+	cat "$PACKS" > "$MAL_PACKS"
+	
+	#Remove Required Packages from Malicous packages 
 	while read -r package; do 
-		# shellcheck disable=SC2094
-		grep -v package "$MAL_PACK" > "$MAL_PACK" 
+		sed -i "/$package/d" "$MAL_PACKS"
 	done < "$REQ_PACK"
 
 	#Remove Malicous Packages
 	while read -r package; do 
 		aptitude search "?exact-name(${package}) ~i" && aptitude purge "${package}" -y -q
-	done < "$MAL_PACK"
+	done < "$MAL_PACKS"
 
 	#Add Required Packages 
 	while read -r package; do 
@@ -155,8 +157,8 @@ add_and_remove_packages(){
 		sudo system "$package" start 
 	done < "$REQ_PACK"
 
-	apt autoremove -y 
-	apt autoclean 
+	apt-get autoremove -y 
+	apt-get autoclean 
 }
 
 
@@ -174,6 +176,7 @@ add_and_remove_packages(){
 #-O Displays owning process ID for when you need to do taskkill
 
 #Searchs User files and stories in a log file
+
 search_user_files(){
 	touch "$FILES"
 	{
@@ -269,6 +272,19 @@ echo "Backups saved in $backup_dir"
 echo "CyberPatriot policy fixes applied successfully."
 }
 
+configure_password_policy(){
+	apt-get -y install libpam-pwquality 
+}
+
+configure_audit_policy(){
+	apt-get -y install auditd audispd-plugins
+	wget --directory-prefix="$RESOURCES" -O audit.rules https://github.com/Neo23x0/auditd.git
+	mv audit.rules "$RESOURCES"
+	cp "$RESOURCES"/audit.rules /etc/audit/rules.d/
+	systemctl restart auditd.service
+	systemctl enable auditd.service
+}
+
 configure_setting(){
 	local config_file="$1"
 	local setting="$2"
@@ -280,6 +296,7 @@ configure_setting(){
         echo "${setting} ${value}" >> "$config_file"
     fi
 }
+
 
 
 main(){
@@ -307,11 +324,12 @@ main(){
 	fix_file_permissions
 	passpolicy
 	search_user_files
+	configure_audit_policy
 	print_OS_info 
 }
 
 
 main
-sudo apt-get -y upgrade 
+sudo apt -y full-upgrade 
 
 

@@ -21,3 +21,6 @@ ftp
 doona 
 xproble
 squid
+vsftpd
+rsh-server
+telnet
