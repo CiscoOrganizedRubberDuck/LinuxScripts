@@ -190,11 +190,19 @@ search_user_files(){
 
 fix_file_permissions(){
 	#Chmod appropriate files 
+	chmod 0755 /var/log
+	chmod 0640 /var/log/syslog
 	chmod 0644 /etc/passwd
 	chmod 0640 /etc/shadow
 	chmod 0640 /etc/gshadow
 	chmod 440 /etc/sudoers
 	
+	#Checks library files permissions and corrects them if they are not correct
+	find /lib /lib64 /usr/lib /usr/lib64 -type f -name '*.so*' -perm /022 -exec chmod go-w {} +\
+
+	#Checks library directory permissions and corrects them if they are not correct 
+	find /bin /sbin /usr/bin /usr/sbin /usr/local/bin /usr/local/sbin -perm /022 -type d -exec chmod -R 755 '{}' \;
+
 	#TODO fix UID vulns  
 
 	#Disable root login
