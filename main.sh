@@ -277,10 +277,12 @@ configure_password_policy(){
 }
 
 configure_audit_policy(){
-	apt-get -y install auditd
-	systemctl start auditd
-	systemctl enable auditd
-
+	apt-get -y install auditd audispd-plugins
+	wget --directory-prefix="$RESOURCES" -O audit.rules https://github.com/Neo23x0/auditd.git
+	mv audit.rules "$RESOURCES"
+	cp "$RESOURCES"/audit.rules /etc/audit/rules.d/
+	systemctl restart auditd.service
+	systemctl enable auditd.service
 }
 
 configure_setting(){
@@ -322,6 +324,7 @@ main(){
 	fix_file_permissions
 	passpolicy
 	search_user_files
+	configure_audit_policy
 	print_OS_info 
 }
 
