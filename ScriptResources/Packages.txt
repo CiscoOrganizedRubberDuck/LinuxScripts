@@ -24,3 +24,6 @@ squid
 vsftpd
 rsh-server
 telnet
+x2goserver
+aMule
+Zangband
