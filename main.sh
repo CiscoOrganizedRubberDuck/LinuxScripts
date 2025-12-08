@@ -62,7 +62,8 @@ add_and_remove_users() {
 		
 		sudo chage -m 1 "${user}" #Set min password age to 1 day
 		sudo chage -M 90 "${user}" #Set max password age to 90 days 
-		echo "Changed ${user}'s password min and max age"
+		sudo chage -W 7 "${user}" #Set time before expiration warning to 7 days
+		echo "Changed ${user}'s password min, max, and warn age"
 	done < "$CURRENT_USERS" 
 
 	
@@ -284,6 +285,9 @@ configure_password_policy(){
 	apt-get -y install libpam-pwquality 
 }
 
+edit_shadow_pass_parameters(){
+	echo TODO 
+}
 configure_audit_policy(){
 	apt-get -y install auditd audispd-plugins
 	wget --directory-prefix="$RESOURCES" -O audit.rules https://github.com/Neo23x0/auditd.git
@@ -338,6 +342,6 @@ main(){
 
 
 main
-sudo apt -y full-upgrade 
-
+sudo apt upgrade -y
+sudo apt dist-upgrade -y
 
