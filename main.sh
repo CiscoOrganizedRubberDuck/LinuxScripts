@@ -114,8 +114,7 @@ print_OS_info(){
 	#os 
 	#Will be mint or ubuntu 
 	echo "------OS INFO------" 
-	DISTRO="$(cat /etc/*-release | grep "^ID=" | cut -b 4-)"
-	echo "$DISTRO"
+	cat /etc/*-release 
 	echo "-------------------"
 }
 
@@ -123,11 +122,10 @@ print_OS_info(){
 #UFW 
 install_ufw(){
 	#Install needed packages for script 
-	apt-get update 
-	apt-get update && apt-get install -y aptitude --fix-missing
+	apt-get update -qq && apt-get -qq install -y aptitude --fix-missing
 
 	if ! aptitude search "?exact-name(UFW) ~i"; then 
-		sudo apt-get install ufw --fix-missing
+		sudo apt-get -qq install ufw --fix-missing
 	else
 		echo "ufw already installed"
 	fi 
@@ -135,7 +133,7 @@ install_ufw(){
 }
 
 add_and_remove_packages(){
-	apt-get update && apt-get install -y aptitude --fix-missing
+	apt-get -qq update && apt-get -qq install -y aptitude --fix-missing
 	
 	#Write PACKS into MAL_PACKS. This allows the us to keep PACKs later for manually removing packages if needed
 	cat "$PACKS" > "$MAL_PACKS"
@@ -158,8 +156,8 @@ add_and_remove_packages(){
 		sudo system "$package" start 
 	done < "$REQ_PACK"
 
-	apt-get autoremove -y 
-	apt-get autoclean 
+	apt-get autoremove -y -qq 
+	apt-get autoclean -qq
 }
 
 
@@ -282,14 +280,14 @@ echo "CyberPatriot policy fixes applied successfully."
 }
 
 configure_password_policy(){
-	apt-get -y install libpam-pwquality 
+	apt-get -y -qq install libpam-pwquality 
 }
 
 edit_shadow_pass_parameters(){
 	echo TODO 
 }
 configure_audit_policy(){
-	apt-get -y install auditd audispd-plugins
+	apt-get -y -qq install auditd audispd-plugins
 	wget --directory-prefix="$RESOURCES" -O audit.rules https://github.com/Neo23x0/auditd.git
 	mv audit.rules "$RESOURCES"
 	cp "$RESOURCES"/audit.rules /etc/audit/rules.d/
@@ -322,7 +320,7 @@ main(){
 	echo "nameserver 8.8.8.8" | sudo tee /etc/resolv.conf > /dev/null
 	
 	#update packages
-	apt-get update -y -q 
+	apt-get update -y -qq
 	
 	#Only do the users stuff if there is an Input.txt
 	check_input_txt
@@ -342,6 +340,10 @@ main(){
 
 
 main
-sudo apt upgrade -y
-sudo apt dist-upgrade -y
+echo Upgrading Packages
+sudo apt upgrade -qq -y
+echo Done
+echo Upgrading Distro
+sudo apt dist-upgrade -qq -y
+echo Done
 
