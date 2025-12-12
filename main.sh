@@ -114,7 +114,7 @@ print_OS_info(){
 	#os 
 	#Will be mint or ubuntu 
 	echo "------OS INFO------" 
-	cat /etc/*-release 
+	cat /etc/*-release | grep -iv url
 	echo "-------------------"
 }
 
@@ -281,6 +281,7 @@ echo "CyberPatriot policy fixes applied successfully."
 
 configure_password_policy(){
 	apt-get -y -qq install libpam-pwquality 
+	
 }
 
 edit_shadow_pass_parameters(){
