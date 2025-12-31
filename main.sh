@@ -287,6 +287,7 @@ configure_password_policy(){
 edit_shadow_pass_parameters(){
 	echo TODO 
 }
+
 configure_audit_policy(){
 	apt-get -y -qq install auditd audispd-plugins
 	wget --directory-prefix="$RESOURCES" -O audit.rules https://github.com/Neo23x0/auditd.git
@@ -336,6 +337,7 @@ main(){
 	passpolicy
 	search_user_files
 	configure_audit_policy
+	configure_password_policy
 	print_OS_info 
 }
 
