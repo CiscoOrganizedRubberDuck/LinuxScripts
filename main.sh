@@ -208,80 +208,55 @@ fix_file_permissions(){
 	passwd -l root
 }
 
-passpolicy(){
-
-timestamp=$(date +%Y%m%d-%H%M%S)
-backup_dir="/root/policy-backups-$timestamp"
-mkdir -p "$backup_dir"
-
-echo "=== CyberPatriot Password Policy Fix Script ==="
-echo "Creating backup directory at $backup_dir"
-
-#-------------------------------------------------
-# 1. Backup target files
-#-------------------------------------------------
-for file in /etc/pam.d/common-password /etc/pam.d/common-auth; do
-    if [ -f "$file" ]; then
-        cp "$file" "$backup_dir/"
-        echo "Backed up $file"
-    else
-        echo "WARNING: $file not found, skipping"
-    fi
-done
-
-#-------------------------------------------------
-# 2. Enforce minimum password length in common-password
-#-------------------------------------------------
-echo "Configuring /etc/pam.d/common-password for minimum length..."
-
-cp /etc/pam.d/common-password /etc/pam.d/common-password.tmp
-
-# remove any old pam_unix.so line (so we can rewrite cleanly)
-sed -i '/pam_unix.so/d' /etc/pam.d/common-password.tmp
-
-# Append correct pam_unix.so line as CyberPatriot expects
-# According to the answer key, it must include minlen=10
-cat <<'EOF' >> /etc/pam.d/common-password.tmp
-password   [success=2 default=ignore]   pam_unix.so obscure use_authtok try_first_pass sha512 minlen=10
-EOF
-
-mv /etc/pam.d/common-password.tmp /etc/pam.d/common-password
-echo "✓ Minimum password length set (minlen=10)"
-
-#-------------------------------------------------
-# 3. Disable null passwords in common-auth
-#-------------------------------------------------
-echo "Configuring /etc/pam.d/common-auth to disallow null passwords..."
-
-cp /etc/pam.d/common-auth /etc/pam.d/common-auth.tmp
-
-# remove 'nullok' option if it exists
-sed -i 's/\<nullok\>//g' /etc/pam.d/common-auth.tmp
-
-# make sure the pam_unix.so line exists
-if ! grep -q 'pam_unix.so' /etc/pam.d/common-auth.tmp; then
-    echo "auth [success=2 default=ignore] pam_unix.so" >> /etc/pam.d/common-auth.tmp
-fi
-
-mv /etc/pam.d/common-auth.tmp /etc/pam.d/common-auth
-echo "✓ Null passwords are now disallowed"
-
-#-------------------------------------------------
-# 4. Summary
-#-------------------------------------------------
-
-echo
-echo "=== Verification Summary ==="
-grep "pam_unix.so" /etc/pam.d/common-password
-grep "pam_unix.so" /etc/pam.d/common-auth
-echo
-echo "Backups saved in $backup_dir"
-echo "CyberPatriot policy fixes applied successfully."
-}
-
 configure_password_policy(){
-	apt-get -y -qq install libpam-pwquality 
+	#Create backups directory 
+	local timestamp 
+	timestamp=$(date +%Y%m%d-%H%M%S) #Doing in two steps prevents hiding the error of the subshell  
+	local backup_dir="/root/policy-backups-$timestamp"
+	mkdir -p "$backup_dir"
+	local ssh_config="/etc/ssh/sshd_config"
 	
+	apt-get -y -qq install libpam-pwquality 
+		
+	#Back Up Pam.d files 
+	for file in /etc/pam.d/common-password /etc/pam.d/common-auth; do
+		if [ -f "$file" ]; then
+			cp "$file" "$backup_dir/"
+			echo "Backed up $file"
+		else
+			echo "WARNING: $file not found, skipping"
+		fi
+	done
+
+	#Start Common-password Edits 
+	cp /etc/pam.d/common-password /etc/pam.d/common-password.tmp
+
+	sed -i '/pam_unix.so/d' /etc/pam.d/common-password.tmp #removes old pam_unix line 
+	
+	#Replace the EOF with a libpam module line  
+	#GPT said success=2 but that doesn't make sense so triple check 
+	cat <<'EOF' >> /etc/pam.d/common-password.tmp
+password   [success=1 default=ignore]   pam_unix.so obscure use_authtok try_first_pass sha512 minlen=10 
+EOF
+	mv /etc/pam.d/common-password.tmp /etc/pam.d/common-password #Move the tmp file contents back into the original file
+
+	#Start Common-Auth Edits 
+	cp /etc/pam.d/common-auth /etc/pam.d/common-auth.tmp
+
+	sed -i 's/\<nullok\>//g' /etc/pam.d/common-auth.tmp # remove 'nullok' option if it exists
+
+	if ! grep -q 'pam_unix.so' /etc/pam.d/common-auth.tmp; then
+    	echo "auth [success=1 default=ignore] pam_unix.so" >> /etc/pam.d/common-auth.tmp
+	fi
+
+	#Code For Editing SSHD
+	if ( grep -iq "$REQ_PACK" sshd ); then
+		cp $ssh_config "$backup_dir/"
+	fi
+
+	#Back up System Conf files 
+	cp "/etc/sysctl.conf" "$backup_dir/"
+
 }
 
 edit_shadow_pass_parameters(){
@@ -302,14 +277,15 @@ configure_setting(){
 	local setting="$2"
 	local value="$3"
 
-	if grep -q "^[#]*\s*${setting}" "$config_file"; then
-        sed -i "s/^[#]*\s*${setting}.*/${setting} ${value}/" "$config_file"
+	#find if the value setting is in the config file 
+	#Regex searchs for a string that starts with # then any white space and then the setting 
+	if grep -q "^[#]*\s*${setting}" "$config_file"; then  
+        sed -i "s/^[#]*\s*${setting}.*/${setting} ${value}/" "$config_file" #substitute the value of the setting
     else
+	#if setting is not foundm, add the setting and the value 
         echo "${setting} ${value}" >> "$config_file"
     fi
 }
-
-
 
 main(){
 	check_root 
