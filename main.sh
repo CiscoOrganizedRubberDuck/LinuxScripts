@@ -344,9 +344,9 @@ main(){
 
 main
 echo Upgrading Packages
-sudo apt upgrade -qq -y
+sudo apt upgrade -q -y
 echo Done
 echo Upgrading Distro
-sudo apt dist-upgrade -qq -y
+sudo apt dist-upgrade -q -y
 echo Done
 
