@@ -2,7 +2,7 @@
 **Features** 
 - Adds and Removes Users 
 - Adds and Removes Admins
-- Changes all user passwords to "CyberPartriot2025!"  
+- Changes all user passwords 
 - Enables UFW 
 - Logs will be stored in a seperate file
 - Ability to add and remove packages
